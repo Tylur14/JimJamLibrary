@@ -5,15 +5,21 @@ using UnityEngine;
 using UnityEditor;
 using System.IO;
 using System.Linq;
-using System.Net;
-using System.Runtime.InteropServices;
-using static UnityEngine.Application;
 using Debug = UnityEngine.Debug;
 
 /// <summary>
-/// This is a simple task tracking utility for the Unity Engine
-/// https://docs.google.com/document/d/1Ed28y0WwtQDR87IzCQDoIhSVqCMsAqq3OsAjPAo0ASc/edit?usp=sharing
-/// |-> Design Doc
+/// The Jim Jam Library Core
+/// A simple controller for handling files you may want to use across several projects.
+/// Say you have a door script that is simple and can be used on multiple projects, but on this other project you
+/// |-> fix bugs or add a new feature that you want to use on the first project. So with this library you can add
+/// |-> it to the library or update it if it's already in the project.
+///
+/// Features:
+/// |- Manage a single location for resuable scripts
+/// |- Get status of each file
+/// |- Push updates to the library
+/// |- Pull newer versions from the library
+/// |- Add new files to library with context menu in project tab
 /// </summary>
 #if UNITY_EDITOR
 
@@ -49,7 +55,7 @@ public class JimJam_Library : EditorWindow
     private void OnGUI()
     {
         _scrollPosition = GUILayout.BeginScrollView(
-            _scrollPosition, GUILayout.Height(300));
+            _scrollPosition, GUILayout.Height(350));
         
         
         if (GUILayout.Button("Check for Updates", GUILayout.Height(25),GUILayout.Width(175)))
@@ -108,8 +114,9 @@ public class JimJam_Library : EditorWindow
                 GUILayout.EndHorizontal();
             }
         GUILayout.EndScrollView();
-        if (GUILayout.Button("Backup", GUILayout.Height(25), GUILayout.Width(125)))
+        if (GUILayout.Button("Backup", GUILayout.Height(30), GUILayout.Width(125)))
             PushToBackups();
+        
     }
 
     void PushToBackups()
@@ -204,6 +211,7 @@ public class JimJam_Library : EditorWindow
             Directory.CreateDirectory(_libraryPath);
         CheckForUpdates();
     }
+    
     [MenuItem("Assets/JJL - Send to Library", false, 0)]
     static void SendFileToLibrary() {
         var obj = Selection.activeObject;
