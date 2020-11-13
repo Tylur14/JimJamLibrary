@@ -40,16 +40,21 @@ public class Resource
 public class JimJam_Library : EditorWindow
 {
     private static string _libraryPath;
-    private static List<String> _tasks = new List<string>();
-    //private int _textMaxLength = 64;
     Vector2 _scrollPosition;
     List<Resource> _resources = new List<Resource>();
     private bool _updating;
+    private static string dataPath;
+    
     [MenuItem("JimJam/Library %g")]
     public static void ShowWindow()
     {
         var window = GetWindow<JimJam_Library>("Jim-Jam Library");
         window.minSize = new Vector2(380, 425);
+        dataPath = Application.dataPath;
+        _libraryPath = Environment.GetFolderPath(
+            Environment.SpecialFolder.ApplicationData) + @"\JimJam\LibraryPackages";
+        if (!Directory.Exists(_libraryPath))
+            Directory.CreateDirectory(_libraryPath);
     }
 
     private void OnGUI()
@@ -133,16 +138,16 @@ public class JimJam_Library : EditorWindow
 
     void PushToLibrary(string fp,string fn)
     {
-        string dataPath = Application.dataPath;
         var localCopy = Directory.GetFiles(dataPath, fn, SearchOption.AllDirectories);
-        File.Copy(localCopy[0],fp,true);
+        if(localCopy.Length>0)
+            File.Copy(localCopy[0],fp,true);
+        else Debug.LogWarning("JJL Warning! Attempting to push a non-existent file to the Library!");
         AssetDatabase.Refresh();
         CheckForUpdates();
     }
     
     void PullFromLibrary(string fp,string fn)
     {
-        string dataPath = Application.dataPath;
         var localCopy = Directory.GetFiles(dataPath, fn, SearchOption.AllDirectories);
         if (localCopy.Length > 0)
         {
@@ -188,23 +193,10 @@ public class JimJam_Library : EditorWindow
             return Resource.ResourceStates.Older;    
         }
         return Resource.ResourceStates.NoLocalCopy;
-        
     }
-    
-
-    /* https://stackoverflow.com/questions/20445426/how-to-show-an-ellipses-at-the-end-of-the-text-in-a-textarea
-    public static string TruncateAtWord(string input, int length)
-    {
-        // verify that input is either empty or less than the max character count
-        if (input == null || input.Length < length)
-            return input;
-        int iNextSpace = input.LastIndexOf(" ", length, StringComparison.Ordinal);
-
-        return string.Format("{0}...", input.Substring(0, (iNextSpace > 0) ? iNextSpace : length).Trim());
-    } */
-
     private void OnValidate()
     {
+        dataPath = Application.dataPath;
         _libraryPath = Environment.GetFolderPath(
             Environment.SpecialFolder.ApplicationData) + @"\JimJam\LibraryPackages";
         if (!Directory.Exists(_libraryPath))
@@ -228,7 +220,7 @@ public class JimJam_Library : EditorWindow
         }
         else
         {
-            Debug.LogWarning("JimJamLibrary Warning! " + path + " is not a supported file type");
+            Debug.LogWarning("JJL Warning! " + path + " is not a supported file type");
         }
         AssetDatabase.Refresh();
     }
