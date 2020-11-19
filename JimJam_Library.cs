@@ -211,7 +211,7 @@ public class JimJam_Library : EditorWindow
         if (path.Length > 0 && path.Contains(".cs"))
         {
             Debug.Log(path);
-            string newFileName = path.Substring(7);
+            string newFileName = path.Substring(path.LastIndexOf('/')+1);
             if (File.Exists(path))
             {
                 File.Copy(path,_libraryPath+"/"+newFileName,true);

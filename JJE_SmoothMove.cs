@@ -20,7 +20,7 @@ public class JJE_SmoothMove : MonoBehaviour
     [Header("Spring Settings")]
     [SerializeField] private SpringOptions effectType = SpringOptions.Mover;
     [SerializeField] private TransformType transformType = TransformType.WorldSpace;
-    [Range(0.1f,30.0f)]
+    [Range(0.1f,150.0f)]
     [SerializeField] float speed = 10.0f;
     
     [Header("Effect Settings")]
@@ -31,6 +31,9 @@ public class JJE_SmoothMove : MonoBehaviour
     [Header("Interaction Settings")]
     [Range(0.1f,3.0f)]
     [SerializeField] float intervalTime = 1f;
+
+    [Header("Debug Settings")]
+    [SerializeField] private bool inDebugMode;
     
     // Private Vector variables
     private Vector3 _target;
@@ -44,15 +47,18 @@ public class JJE_SmoothMove : MonoBehaviour
 
     private void Update()
     {
-        // for testing purposes only!
-        if(Input.GetKeyDown(KeyCode.Alpha1))
-            StartMoveLoop();
-        if(Input.GetKeyDown(KeyCode.Alpha2))
-            OneShotToStart();
-        if(Input.GetKeyDown(KeyCode.Alpha3))
-            OneShotToEnd();
-        if(Input.GetKeyDown(KeyCode.Alpha0))
-            Stop();
+        if (inDebugMode)
+        {
+            // for testing purposes only!
+            if(Input.GetKeyDown(KeyCode.Alpha1))
+                StartMoveLoop();
+            if(Input.GetKeyDown(KeyCode.Alpha2))
+                OneShotToStart();
+            if(Input.GetKeyDown(KeyCode.Alpha3))
+                OneShotToEnd();
+            if(Input.GetKeyDown(KeyCode.Alpha0))
+                Stop();
+        }
     }
 
     public void StartMoveLoop()
@@ -67,13 +73,13 @@ public class JJE_SmoothMove : MonoBehaviour
                 //https://answers.unity.com/questions/1111308/unity-coroutine-movement-over-time-is-not-consiste.html
                 // ^- Not 100% sure what it does but it makes it work
                 float elapsedTime = 0;
-                float ratio = elapsedTime / intervalTime;
-                while(ratio < 1f)
+                float ratio = elapsedTime / 1;
+                while(ratio < intervalTime)
                 {
-                    elapsedTime += Time.deltaTime;
-                    ratio = elapsedTime / intervalTime;
+                    elapsedTime += Time.fixedDeltaTime;
+                    ratio = elapsedTime / 1;
                     Move();
-                    springTimer -= Time.deltaTime;
+                    springTimer -= Time.fixedDeltaTime;
                     yield return null;
                 }
             }
@@ -109,13 +115,12 @@ public class JJE_SmoothMove : MonoBehaviour
         {
             float elapsedTime = 0;
             float ratio = elapsedTime / 1;
-            while(ratio < 1f)
+            while(ratio < intervalTime)
             {
-                elapsedTime += Time.deltaTime;
+                elapsedTime += Time.fixedDeltaTime;
                 ratio = elapsedTime / 1;
                 Move();
-                
-                print("doing one shot");
+                print("moving");
                 yield return null;
             } 
             i--;
