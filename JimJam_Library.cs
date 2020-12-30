@@ -111,7 +111,7 @@ public class JimJam_Library : EditorWindow
                     continue;
                 }
 
-                if (GUILayout.Button("Get", GUILayout.Height(25), GUILayout.Width(75)))
+                if (GUILayout.Button("Get", GUILayout.Height(25), GUILayout.Width(45)))
                 {
                     PullFromLibrary(file.filePath,file.fileName);
                     continue;

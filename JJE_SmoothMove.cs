@@ -20,7 +20,7 @@ public class JJE_SmoothMove : MonoBehaviour
     [Header("Spring Settings")]
     [SerializeField] private SpringOptions effectType = SpringOptions.Mover;
     [SerializeField] private TransformType transformType = TransformType.WorldSpace;
-    [Range(0.1f,150.0f)]
+    [Range(0.1f,400.0f)]
     [SerializeField] float speed = 10.0f;
     
     [Header("Effect Settings")]
@@ -29,7 +29,7 @@ public class JJE_SmoothMove : MonoBehaviour
     public bool isLocal;
     
     [Header("Interaction Settings")]
-    [Range(0.1f,3.0f)]
+    [Range(0.1f,15.0f)]
     [SerializeField] float intervalTime = 1f;
 
     [Header("Debug Settings")]
@@ -42,6 +42,7 @@ public class JJE_SmoothMove : MonoBehaviour
 
     private void Awake()
     {
+        _valueDir = startValue;
         _target = endValue;
     }
 
@@ -76,10 +77,10 @@ public class JJE_SmoothMove : MonoBehaviour
                 float ratio = elapsedTime / 1;
                 while(ratio < intervalTime)
                 {
-                    elapsedTime += Time.fixedDeltaTime;
+                    elapsedTime += Time.deltaTime;
                     ratio = elapsedTime / 1;
                     Move();
-                    springTimer -= Time.fixedDeltaTime;
+                    springTimer -= Time.deltaTime;
                     yield return null;
                 }
             }
@@ -117,7 +118,7 @@ public class JJE_SmoothMove : MonoBehaviour
             float ratio = elapsedTime / 1;
             while(ratio < intervalTime)
             {
-                elapsedTime += Time.fixedDeltaTime;
+                elapsedTime += Time.deltaTime;
                 ratio = elapsedTime / 1;
                 Move();
                 print("moving");
