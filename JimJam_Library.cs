@@ -43,29 +43,30 @@ public class JimJam_Library : EditorWindow
     Vector2 _scrollPosition;
     List<Resource> _resources = new List<Resource>();
     private bool _updating;
-    private static string dataPath;
-    
+    private static string _dataPath;
+    int _toolbarInt = 0;
+    readonly string[] _toolbarStrings = {"Scripts", "Unity Packages"};
+    private readonly string[] _targetFileTypes = {".cs",".unitypackage"};
+    private string _targetType;
     
     [MenuItem("JimJam/Library %g")]
     public static void ShowWindow()
     {
         var window = GetWindow<JimJam_Library>("Jim-Jam Library");
         window.minSize = new Vector2(325, 100);
-        dataPath = Application.dataPath;
+        _dataPath = Application.dataPath;
         _libraryPath = Environment.GetFolderPath(
             Environment.SpecialFolder.ApplicationData) + @"\JimJam\LibraryPackages";
         if (!Directory.Exists(_libraryPath))
             Directory.CreateDirectory(_libraryPath);
     }
 
-    int _toolbarInt = 0;
-    string[] toolbarStrings = {"Scripts", "Unity Packages"};
-    private string[] targetFileTypes = {".cs",".unitypackage"};
-    private string targetType;
+    
     private void OnGUI()
     {
-        _toolbarInt = GUILayout.Toolbar(_toolbarInt, toolbarStrings);
-        targetType = targetFileTypes[_toolbarInt];
+        _toolbarInt = GUILayout.Toolbar(_toolbarInt, _toolbarStrings);
+        _targetType = _targetFileTypes[_toolbarInt];
+        GUILayout.Space(5);
         GUILayout.BeginHorizontal();
         if (GUILayout.Button("Check for Updates", GUILayout.Height(25),GUILayout.Width(125)))
             CheckForUpdates();
@@ -76,12 +77,14 @@ public class JimJam_Library : EditorWindow
         if (GUILayout.Button("Backup", GUILayout.Height(25), GUILayout.Width(125)))
             PushToBackups();
         GUILayout.EndHorizontal();
-        
+        GUILayout.Space(5);
+        if(!Application.isPlaying && _targetType != null)
+            CheckForUpdates();
         _scrollPosition = GUILayout.BeginScrollView(
             _scrollPosition, GUILayout.Height(position.height * 0.90f));
         
         // Go through each resource and create a section for it
-        if (_resources != null && !_updating)
+        if (_resources != null && !_updating && _targetType != null)
             foreach (var file in _resources.ToList())
             {
                 GUILayout.BeginHorizontal();
@@ -116,18 +119,28 @@ public class JimJam_Library : EditorWindow
                     GUILayout.Label("No local copy",GUILayout.Height(25), GUILayout.Width(155));
                 }
                 
+                // Display interaction buttons for item
                 GUI.contentColor = Color.white;
-                if (GUILayout.Button("Push", GUILayout.Height(25), GUILayout.Width(45)))
+                if (_targetType == _targetFileTypes[0])
                 {
-                    PushToLibrary(file.filePath,file.fileName);
-                    continue;
-                }
+                    if (GUILayout.Button("Push", GUILayout.Height(25), GUILayout.Width(45)))
+                    {
+                        PushToLibrary(file.filePath,file.fileName);
+                        continue;
+                    }
 
-                if (GUILayout.Button("Get", GUILayout.Height(25), GUILayout.Width(45)))
+                    if (GUILayout.Button("Get", GUILayout.Height(25), GUILayout.Width(45)))
+                    {
+                        PullFromLibrary(file.filePath,file.fileName);
+                        continue;
+                    }
+                }
+                else if (GUILayout.Button("Get", GUILayout.Height(25), GUILayout.Width(80)))
                 {
                     PullFromLibrary(file.filePath,file.fileName);
                     continue;
                 }
+                
                 GUILayout.EndHorizontal();
             }
         GUILayout.EndScrollView();
@@ -140,7 +153,7 @@ public class JimJam_Library : EditorWindow
         var files = Directory.GetFiles(_libraryPath).ToList();
         foreach (var f in files)
         {
-            if (f.Contains(targetType))
+            if (f.Contains(_targetType))
             {
                 File.Copy(f,_libraryPath+"/JimJamLibrary/"+f.Substring(f.LastIndexOf('\\') + 1),true);
             }
@@ -149,7 +162,7 @@ public class JimJam_Library : EditorWindow
 
     void PushToLibrary(string fp,string fn)
     {
-        var localCopy = Directory.GetFiles(dataPath, fn, SearchOption.AllDirectories);
+        var localCopy = Directory.GetFiles(_dataPath, fn, SearchOption.AllDirectories);
         if(localCopy.Length>0)
             File.Copy(localCopy[0],fp,true);
         else Debug.LogWarning("JJL Warning! Attempting to push a non-existent file to the Library!");
@@ -159,13 +172,13 @@ public class JimJam_Library : EditorWindow
     
     void PullFromLibrary(string fp,string fn)
     {
-        var localCopy = Directory.GetFiles(dataPath, fn, SearchOption.AllDirectories);
+        var localCopy = Directory.GetFiles(_dataPath, fn, SearchOption.AllDirectories);
         if (localCopy.Length > 0)
         {
             File.Copy(fp, localCopy[0],true);
             //File.Replace(fp, s[0],s[0]);    
         }
-        else File.Copy(fp, dataPath+"/"+fn);
+        else File.Copy(fp, _dataPath+"/"+fn);
         AssetDatabase.Refresh();
         CheckForUpdates();
         
@@ -178,7 +191,7 @@ public class JimJam_Library : EditorWindow
         var files = Directory.GetFiles(_libraryPath).ToList();
         foreach (var f in files)
         {
-            if (f.Contains(targetType))
+            if (f.Contains(_targetType))
             {
                 var r = new Resource {filePath = f, fileName = f.Substring(f.LastIndexOf('\\') + 1)};
                 r.state = CompareVersions(r.filePath, r.fileName);
@@ -207,12 +220,13 @@ public class JimJam_Library : EditorWindow
     }
     private void OnValidate()
     {
-        dataPath = Application.dataPath;
+        _dataPath = Application.dataPath;
         _libraryPath = Environment.GetFolderPath(
             Environment.SpecialFolder.ApplicationData) + @"\JimJam\LibraryPackages";
         if (!Directory.Exists(_libraryPath))
             Directory.CreateDirectory(_libraryPath);
-        CheckForUpdates();
+        if(_targetType!=null)
+            CheckForUpdates();
     }
     
     [MenuItem("Assets/JJL - Send to Library", false, 0)]
