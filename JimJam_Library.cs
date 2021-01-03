@@ -15,7 +15,7 @@ using Debug = UnityEngine.Debug;
 /// |-> it to the library or update it if it's already in the project.
 ///
 /// Features:
-/// |- Manage a single location for resuable scripts
+/// |- Manage a single location for reusable scripts
 /// |- Get status of each file
 /// |- Push updates to the library
 /// |- Pull newer versions from the library
@@ -45,11 +45,12 @@ public class JimJam_Library : EditorWindow
     private bool _updating;
     private static string dataPath;
     
+    
     [MenuItem("JimJam/Library %g")]
     public static void ShowWindow()
     {
         var window = GetWindow<JimJam_Library>("Jim-Jam Library");
-        window.minSize = new Vector2(380, 425);
+        window.minSize = new Vector2(325, 100);
         dataPath = Application.dataPath;
         _libraryPath = Environment.GetFolderPath(
             Environment.SpecialFolder.ApplicationData) + @"\JimJam\LibraryPackages";
@@ -57,16 +58,27 @@ public class JimJam_Library : EditorWindow
             Directory.CreateDirectory(_libraryPath);
     }
 
+    int _toolbarInt = 0;
+    string[] toolbarStrings = {"Scripts", "Unity Packages"};
+    private string[] targetFileTypes = {".cs",".unitypackage"};
+    private string targetType;
     private void OnGUI()
     {
-        _scrollPosition = GUILayout.BeginScrollView(
-            _scrollPosition, GUILayout.Height(350));
-        
-        
-        if (GUILayout.Button("Check for Updates", GUILayout.Height(25),GUILayout.Width(175)))
+        _toolbarInt = GUILayout.Toolbar(_toolbarInt, toolbarStrings);
+        targetType = targetFileTypes[_toolbarInt];
+        GUILayout.BeginHorizontal();
+        if (GUILayout.Button("Check for Updates", GUILayout.Height(25),GUILayout.Width(125)))
             CheckForUpdates();
+        GUILayout.FlexibleSpace();
         if (GUILayout.Button("Open Directory", GUILayout.Height(25), GUILayout.Width(125)))
             Process.Start(_libraryPath);
+        GUILayout.FlexibleSpace();
+        if (GUILayout.Button("Backup", GUILayout.Height(25), GUILayout.Width(125)))
+            PushToBackups();
+        GUILayout.EndHorizontal();
+        
+        _scrollPosition = GUILayout.BeginScrollView(
+            _scrollPosition, GUILayout.Height(position.height * 0.90f));
         
         // Go through each resource and create a section for it
         if (_resources != null && !_updating)
@@ -119,8 +131,7 @@ public class JimJam_Library : EditorWindow
                 GUILayout.EndHorizontal();
             }
         GUILayout.EndScrollView();
-        if (GUILayout.Button("Backup", GUILayout.Height(30), GUILayout.Width(125)))
-            PushToBackups();
+        
         
     }
 
@@ -129,7 +140,7 @@ public class JimJam_Library : EditorWindow
         var files = Directory.GetFiles(_libraryPath).ToList();
         foreach (var f in files)
         {
-            if (f.Contains(".cs"))
+            if (f.Contains(targetType))
             {
                 File.Copy(f,_libraryPath+"/JimJamLibrary/"+f.Substring(f.LastIndexOf('\\') + 1),true);
             }
@@ -167,7 +178,7 @@ public class JimJam_Library : EditorWindow
         var files = Directory.GetFiles(_libraryPath).ToList();
         foreach (var f in files)
         {
-            if (f.Contains(".cs"))
+            if (f.Contains(targetType))
             {
                 var r = new Resource {filePath = f, fileName = f.Substring(f.LastIndexOf('\\') + 1)};
                 r.state = CompareVersions(r.filePath, r.fileName);
@@ -208,7 +219,7 @@ public class JimJam_Library : EditorWindow
     static void SendFileToLibrary() {
         var obj = Selection.activeObject;
         var path = AssetDatabase.GetAssetPath(obj.GetInstanceID());
-        if (path.Length > 0 && path.Contains(".cs"))
+        if (path.Length > 0 && (path.Contains(".cs") || path.Contains(".unitypackage")))
         {
             Debug.Log(path);
             string newFileName = path.Substring(path.LastIndexOf('/')+1);

@@ -5,39 +5,68 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
 
-[ExecuteInEditMode]
+/// <summary>
+/// JimJam Utilities - GreenScreen
+///    !!! WARNING: CURRENTLY DOES NOT FUNCTION OUTSIDE OF THE UNITY EDITOR !!!
+///     |-> if you wish to implement this outside of the unity editor
+///     |-> please remove the '#if UNITY_EDITOR & #endif' and reapply those
+///     |-> in areas that refresh the asset database, otherwise it will
+///     |-> cause build errors.
+/// </summary>
+
+/// <summary>
+/// TODO:
+/// * Add default folder location options (i.e. save to assets, desktop, or other)
+/// * Add option for opening to folder location after generating images
+/// * Fix issue when trying to generate new folder at custom path
+/// </summary>
+    //   =================================================================================================================================
+#if UNITY_EDITOR
+[ExecuteAlways]
 public class JJU_GreenScreen : MonoBehaviour
 {
 //    ===========================================    
 //    ================ VARIABLES ================
 //    ===========================================
-
-    [Header("Preview Settings")] 
-    [SerializeField] private RectTransform previewPanel;
-    [Range(1, 1920)]
-    [SerializeField] private int snapshotPreviewX;
-    [Range(1, 1080)]
-    [SerializeField] private int snapshotPreviewY;
-    [Range(0.0f,1.0f)]
-    [SerializeField] float transparency = 0.5f;
-    
+    [Header("Preview Settings")]
+    [SerializeField]
+     private RectTransform previewPanel;
+    [Range(1, 1920)] [SerializeField]
+     private int snapshotWidth;
+    [Range(1, 1080)] [SerializeField]
+     private int snapshotHeight;
+    [Range(0.0f,1.0f)] [SerializeField]
+     private float previewTransparency = 0.5f; 
+     
+    //   =================================================================================================================================
     [Header("Camera Settings")]
-    [SerializeField] private bool doesRotate;
     [SerializeField] private bool lookAtTarget;
-    [SerializeField] private int rotationCount; // if > 0, rotate after each snapshot and decrement
+    [SerializeField] private int rotationCount = 8; // if > 0, rotate after each snapshot and decrement
     
-
+    //   =================================================================================================================================
     [Header("Export Settings")] 
-    [SerializeField] private string exportDirPath;
-    [SerializeField] private string exportName;
-
+    [Tooltip("Where to export snapshots. Leave blank to export into project.")]
+    [SerializeField] private string exportDirectory;
+    [Tooltip("Name of exported snapshot.")]
+    [SerializeField] private string exportFileName;
+    [Tooltip("Creates a folder to sort snapshots into. Leave blank to prevent making a new folder.")]
+    [SerializeField] private string categoryFolderName;
+    
+    //   =================================================================================================================================
     [Header("Snapshot Settings")]
     [SerializeField] private Transform target;
     
+    //   ============================================================
+    // Private variables that shouldn't be displayed in the inspector
     private Camera _cam;
     private bool _takeScreenshotOnNextFrame;
     private float _rotAmount;
     private int _rotIndex;
+    private string _dataPath;
+
+    [HideInInspector] public Vector3 resetPosition; 
+    [HideInInspector] public Vector3 resetRotation; 
+    //   =================================================================================================================================
 
 //    ===========================================
 //    ================ FUNCTIONS ================
@@ -45,148 +74,130 @@ public class JJU_GreenScreen : MonoBehaviour
     public void Update()
     {
         SetPreviewOutline();
+        // Shoutout to this thread for helping bring this project to fruition making it able to function entirely in edit mode
+        // https://forum.unity.com/threads/solved-how-to-force-update-in-edit-mode.561436/
+        EditorApplication.delayCall += EditorApplication.QueuePlayerLoopUpdate;
     }
-    
+
+    //   =================================================================================================================================
     void SetPreviewOutline()
     {
         if (previewPanel)
         {
-            previewPanel.sizeDelta = new Vector2(snapshotPreviewX, snapshotPreviewY);
-            previewPanel.GetComponent<Image>().color = new Color(1, 1, 1, transparency);
+            previewPanel.sizeDelta = new Vector2(snapshotWidth, snapshotHeight);
+            previewPanel.GetComponent<Image>().color = new Color(1, 1, 1, previewTransparency);
         }
-        
     }
 
+    //   =================================================================================================================================
     public void SnapScreenshot()
     {
-        // ScreenCapture.CaptureScreenshot(@"C:\Users\Jim\Desktop\test.png");
-        
+        _cam.targetTexture = RenderTexture.GetTemporary(snapshotWidth,snapshotHeight,16);
         _rotAmount = (float)360 / (float)rotationCount;
         _takeScreenshotOnNextFrame = true;
     }
-
-    private void GetTexture()
-    {
-        _cam.targetTexture = RenderTexture.GetTemporary(snapshotPreviewX,snapshotPreviewY,16);
-        // GET TEXTURE TO SAVE AS IMAGE
-            
-        RenderTexture rTex = _cam.targetTexture;
-        Texture2D rResult = new Texture2D(rTex.width,rTex.height,TextureFormat.ARGB32,false);
-        Rect rect = new Rect(0, 0, rTex.width,rTex.height);
-            
-        rResult.ReadPixels(rect,0,0);
-        byte[] byteArray = rResult.EncodeToPNG();
-
-        // NAME FILE
-        string fileName = GetFileName();
-
-        // SET FILE PATH TO SAVE TO
-        string exPath = GetFilePath();
-            
-        // WRITE TO FILE
-        File.WriteAllBytes(exPath + "/" + fileName , byteArray);
-        
-    }
-
+    //   =================================================================================================================================
     private void OnPostRender()
     {
-        if (_takeScreenshotOnNextFrame && _rotIndex < rotationCount)
+        if (!_takeScreenshotOnNextFrame)
         {
-            _cam.targetTexture = RenderTexture.GetTemporary(snapshotPreviewX,snapshotPreviewY,16);
+            return;
+        }
+        if (_takeScreenshotOnNextFrame)
+        {
             _takeScreenshotOnNextFrame = false;
             
+            // GET TEXTURE TO SAVE AS IMAGE
             RenderTexture rTex = _cam.targetTexture;
-            RenderTexture.ReleaseTemporary(rTex);
-            _cam.targetTexture = null;
-            GetTexture();
+            Texture2D rResult = new Texture2D(rTex.width,rTex.height,TextureFormat.ARGB32,false);
+            Rect rect = new Rect(0, 0, rTex.width,rTex.height);
             
+            rResult.ReadPixels(rect,0,0);
+            byte[] byteArray = rResult.EncodeToPNG();
+
+            // NAME FILE
+            string fileName = GetFileName();
+
+            // SET FILE PATH TO SAVE TO
+            string exPath = GetFilePath();
+            // WRITE TO FILE
+            File.WriteAllBytes(exPath + "/" + fileName , byteArray);
+
             Nudge();
             _rotIndex++;
-
-            _rotIndex++;
-            if (_rotIndex < rotationCount)
-                _takeScreenshotOnNextFrame = true;
-            else _rotIndex = 0;
-            
+            RenderTexture.ReleaseTemporary(rTex);
+            _cam.targetTexture = null;
             #if UNITY_EDITOR
             AssetDatabase.Refresh();
             #endif
+            
+            // Increment
+            if (_rotIndex < rotationCount)
+                SnapScreenshot();
+            else
+            {
+                _rotIndex = 0;
+            }
         }
     }
-
-    
-    
+    //   =================================================================================================================================
     private string GetFileName()
     {
-        string fileName = "GreenScreenExportImage";         // set default file name
-        if (exportName != String.Empty && exportName != "") // overwrite file name if applicable
-            fileName = exportName;
-        if (doesRotate) // if this is part of a series of images, number it accordingly
+        string fileName = "SnapshotSprite";         // set default file name
+        if (exportFileName != String.Empty && exportFileName != "") // overwrite file name if applicable
+            fileName = exportFileName;
+        if (rotationCount > 0) // if this is part of a series of images, number it accordingly
             fileName += _rotIndex.ToString();
         fileName += ".png"; // append file name to be a png type image
         return fileName;
     }
-    
+    //   =================================================================================================================================
     private string GetFilePath()
     {
-        string exPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-        exPath += "/GreenScreenExports";
+        //string exPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+        string exPath = _dataPath;
+        exPath += "/Snapshots";
+        if (categoryFolderName != String.Empty && categoryFolderName != "")
+            exPath += "/" + categoryFolderName;
         if (!Directory.Exists(exPath))
             Directory.CreateDirectory(exPath);
-        if(exportDirPath != String.Empty && exportDirPath != "")
-            if (Directory.Exists(exportDirPath))
-                exPath = exportDirPath;
+        if(exportDirectory != String.Empty && exportDirectory != "")
+            if (Directory.Exists(exportDirectory))
+                exPath = exportDirectory;
         return exPath;
     }
-    
+    //   =================================================================================================================================
     // Rotate Around Target Object
     public void Nudge()
     {
+        // Get the degrees of how much to rotate each sequence
         _rotAmount = (float)360 / (float)rotationCount;
         
         // Rotates AROUND the object, pulled from the Transform base class since this function doesn't appear to work in edit mode
-        Vector3 position = this.transform.position;
+        Vector3 position = transform.position;
         Vector3 vector3 = Quaternion.AngleAxis(_rotAmount, Vector3.up) * (position - target.transform.position);
-        this.transform.position = target.transform.position + vector3;
+        transform.position = target.transform.position + vector3;
         
+        // Rotate camera to face the target object
         transform.LookAt(target);
         if (!lookAtTarget)
             transform.rotation = Quaternion.Euler(new Vector3(0.0f, transform.eulerAngles.y, 0.0f));
-        //var tarRot = transform.position * (20f * ((float) Math.PI / 180f));
-        //this.transform.rotation = Quaternion.Euler(tarRot);
-
     }
     private void OnEnable()
     {
         _cam = GetComponent<Camera>();
+        _dataPath = Application.dataPath;
     }
-    // Check if File is Open -- may go unused?
-    private bool IsFileLocked(FileInfo file)
+
+    public void ResetCamera()
     {
-        FileStream stream = null;
-
-        try
-        {
-            stream = file.Open(FileMode.Open, FileAccess.ReadWrite, FileShare.None);
-        }
-        catch (IOException)
-        {
-            //the file is unavailable because it is:
-            //still being written to
-            //or being processed by another thread
-            //or does not exist (has already been processed)
-            return true;
-        }
-        finally
-        {
-            if (stream != null)
-                stream.Close();
-        }
-
-        //file is not locked
-        return false;
+        transform.position = resetPosition;
+        transform.rotation = Quaternion.Euler(resetRotation);
     }
 }
+    //   =================================================================================================================================
+
+
 
 //    ============================================
 //    ================ EDITOR GUI ================
@@ -200,38 +211,45 @@ public class GSE : Editor
         
         JJU_GreenScreen instance = (JJU_GreenScreen)target;
         DrawDefaultInspector();
-        GUILayout.Space(10);
-        //GUILayout.BeginHorizontal();
-        //GUILayout.FlexibleSpace();
-        if (GUILayout.Button("Snap Screenshot",GUILayout.Width(200),GUILayout.Height(50)))
+        
+        //    ===========================================
+        
+        GUILayout.Space(20);
+        GUILayout.BeginHorizontal(); // START H
+        if (GUILayout.Button("Take Snapshot",GUILayout.Width(125),GUILayout.Height(30)))
         {
             instance.SnapScreenshot();
         }
-        if (GUILayout.Button("Nudge",GUILayout.Width(200),GUILayout.Height(50)))
+        if (GUILayout.Button("Nudge",GUILayout.Width(125),GUILayout.Height(30)))
         {
             instance.Nudge();
         }
+        if (GUILayout.Button("Reset",GUILayout.Width(125),GUILayout.Height(30)))
+        {
+            instance.ResetCamera();
+        }
+        GUILayout.EndHorizontal(); // END H
         
-        //GUILayout.FlexibleSpace();
-        //GUILayout.EndHorizontal();
-        //GUILayout.Space(10);
-        //GUILayout.BeginHorizontal();
-        //GUILayout.FlexibleSpace();
-        //if (GUILayout.Button("Reset", GUILayout.Width(150), GUILayout.Height(30)))
-        //{
-        //    instance.ResetStuff();
-        //}
-        //GUILayout.FlexibleSpace();
-        //GUILayout.EndHorizontal();
-       
-
-        //GUILayout.BeginHorizontal();
-        //GUILayout.FlexibleSpace();
-        //if (GUILayout.Button("Delete Screenshots", GUILayout.Width(150), GUILayout.Height(30)))
-        //{
-        //    instance.DeleteAssets();
-        //}
-        //GUILayout.FlexibleSpace();
-        //GUILayout.EndHorizontal();
+        //    ===========================================
+        
+        GUILayout.BeginHorizontal(); // START H
+        EditorGUILayout.Vector3Field("Starting Position:", instance.resetPosition);
+        GUILayout.EndHorizontal(); // END H
+        
+        GUILayout.BeginHorizontal(); // START H
+        EditorGUILayout.Vector3Field("Starting Rotation:", instance.resetRotation);
+        GUILayout.EndHorizontal(); // END H
+        
+        //    ===========================================
+        
+        GUILayout.BeginHorizontal(); // START H
+        if (GUILayout.Button("Capture Position & Rotation"))
+        {
+            instance.resetPosition = Selection.activeTransform.position;
+            instance.resetRotation = Selection.activeTransform.rotation.eulerAngles;
+        }
+        GUILayout.EndHorizontal(); // END H
     }
+    
 }
+#endif

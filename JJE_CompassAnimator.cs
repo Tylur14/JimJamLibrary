@@ -2,14 +2,22 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-
+/// <summary>
+/// Jim Jam Effects - Compass Animator
+/// Get the OG DOOM aesthetic with this compass animator!
+/// Gives a movable and easily controllable billboard entity that can either be a single sprite or animated.
+/// Recommended to use with either the GreenScreen sprite creation tool.
+/// https://github.com/Tylur14/JimJamLibrary -- JimJam Library, has GreenScreen included
+/// 
+/// Features:
+/// |- Create 8-directional animations
+/// </summary>
 public class JJE_CompassAnimator : MonoBehaviour
 {
     [SerializeField] private string animationName;
     [Header("Animation Settings")]
     [SerializeField] private Sprite[] frames;
     [SerializeField] private float frameRate = 0.15f;
-    
 
     [Header("Animation Status")]
     [SerializeField] private float degrees;
@@ -35,6 +43,7 @@ public class JJE_CompassAnimator : MonoBehaviour
     private void Update()
     {
         transform.LookAt(_player);
+        
         FindFacingDirection();
         _spriteRenderer.sprite = frames[(frameIndex * 8) + directionalOffset];
         
@@ -49,7 +58,6 @@ public class JJE_CompassAnimator : MonoBehaviour
         frameIndex++;
         if (frameIndex > frames.Length / 8 - 1)
             frameIndex = 0;
-        
     }
     
     void FindFacingDirection()
@@ -80,30 +88,21 @@ public class JJE_CompassAnimator : MonoBehaviour
         else if (degrees >= 292.5f && degrees < 337.5f) // South-West
             directionalOffset = 7;
         else directionalOffset = 0;                     // South
-
-        
-        
+            
         if (facingDir == new Vector2(1, -1))       // South-East
             directionalOffset += 7;
-
         else if (facingDir == new Vector2(1, 0))   // East
             directionalOffset += 6;
-
         else if (facingDir == new Vector2(1, 1))    // North-East
             directionalOffset += 5;
-
         else if (facingDir == new Vector2(0, 1))    // North
             directionalOffset += 4;
-
         else if (facingDir == new Vector2(-1, 1))  // North-West
             directionalOffset += 3;
-
         else if (facingDir == new Vector2(-1, 0))   // West
             directionalOffset += 2;
-
         else if (facingDir == new Vector2(-1, -1))   // South-West
             directionalOffset += 1;
-
         else if (facingDir == new Vector2(0, -1))    // South
             directionalOffset += 0;
 
@@ -113,7 +112,7 @@ public class JJE_CompassAnimator : MonoBehaviour
             directionalOffset = -1;
             directionalOffset += i;
         }
-        
     }
+
 }
 
