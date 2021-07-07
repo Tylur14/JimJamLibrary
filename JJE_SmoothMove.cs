@@ -1,6 +1,14 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using UnityEditor;
 using UnityEngine;
+
+/// <summary>
+/// MAJOR BUG FOUND: (FIXED) - Timing in editor is out of sync with build
+///     |- There is still a serious timing issue between in-editor & in-build;
+///     |- From last test, in-editor was quick and snappy but in-build was slow and annoying.
+///     |- SOLUTION: it appears that Vector3.SmoothDamp was the main issue. Replaced with Lerp.
+/// </summary>
 
 public class JJE_SmoothMove : MonoBehaviour
 {
@@ -17,9 +25,18 @@ public class JJE_SmoothMove : MonoBehaviour
         GUI
     }
 
+    enum StartingState
+    {
+        None,
+        Looping,
+        ToStart,
+        ToEnd
+    }
+    
     [Header("Spring Settings")]
     [SerializeField] private SpringOptions effectType = SpringOptions.Mover;
     [SerializeField] private TransformType transformType = TransformType.WorldSpace;
+    [SerializeField] private StartingState startState = StartingState.None;
     [Range(0.1f,400.0f)]
     [SerializeField] float speed = 10.0f;
     
@@ -31,9 +48,6 @@ public class JJE_SmoothMove : MonoBehaviour
     [Header("Interaction Settings")]
     [Range(0.1f,15.0f)]
     [SerializeField] float intervalTime = 1f;
-
-    [Header("Debug Settings")]
-    [SerializeField] private bool inDebugMode;
     
     // Private Vector variables
     private Vector3 _target;
@@ -44,49 +58,50 @@ public class JJE_SmoothMove : MonoBehaviour
     {
         _valueDir = startValue;
         _target = endValue;
-    }
 
-    private void Update()
-    {
-        if (inDebugMode)
+        switch (startState)
         {
-            // for testing purposes only!
-            if(Input.GetKeyDown(KeyCode.Alpha1))
-                StartMoveLoop();
-            if(Input.GetKeyDown(KeyCode.Alpha2))
-                OneShotToStart();
-            if(Input.GetKeyDown(KeyCode.Alpha3))
-                OneShotToEnd();
-            if(Input.GetKeyDown(KeyCode.Alpha0))
+            case StartingState.None:
                 Stop();
+                break;
+            case StartingState.Looping:
+                StartMoveLoop();
+                break;
+            case StartingState.ToStart:
+                OneShotToStart();
+                break;
+            case StartingState.ToEnd:
+                OneShotToEnd();
+                break;
         }
     }
 
     public void StartMoveLoop()
     {
-        StopAllCoroutines();
+        //StopAllCoroutines();
         StartCoroutine(DoLoop());
         IEnumerator DoLoop()
         {
-            float springTimer = intervalTime;
-            while (springTimer > 0)
+            //https://answers.unity.com/questions/1111308/unity-coroutine-movement-over-time-is-not-consiste.html
+            float elapsedTime = 0;
+            float ratio = elapsedTime / intervalTime;
+            while(ratio < 1f)
             {
-                //https://answers.unity.com/questions/1111308/unity-coroutine-movement-over-time-is-not-consiste.html
-                // ^- Not 100% sure what it does but it makes it work
-                float elapsedTime = 0;
-                float ratio = elapsedTime / 1;
-                while(ratio < intervalTime)
-                {
-                    elapsedTime += Time.deltaTime;
-                    ratio = elapsedTime / 1;
-                    Move();
-                    springTimer -= Time.deltaTime;
-                    yield return null;
-                }
+                elapsedTime += Time.deltaTime;
+                ratio = elapsedTime / intervalTime;
+                Move();
+                yield return null;
             }
             _target = _target == startValue ? endValue : startValue;
             StartMoveLoop();
         }
+    }
+
+    public void OneShotToOpposite()
+    {
+        StopAllCoroutines();
+        _target = _target == startValue ? endValue : startValue;
+        StartCoroutine(ActivateOnce());
     }
 
     public void OneShotToStart()
@@ -121,7 +136,6 @@ public class JJE_SmoothMove : MonoBehaviour
                 elapsedTime += Time.deltaTime;
                 ratio = elapsedTime / 1;
                 Move();
-                print("moving");
                 yield return null;
             } 
             i--;
@@ -130,7 +144,8 @@ public class JJE_SmoothMove : MonoBehaviour
 
     void Move()
     {
-        _valueDir = Vector3.SmoothDamp(_valueDir,_target,ref _vel, speed * Time.deltaTime);
+        //_valueDir = Vector3.SmoothDamp(_valueDir,_target,ref _vel, speed * Time.deltaTime);
+        _valueDir = Vector3.Lerp(_valueDir,_target, speed * Time.deltaTime);
         
         switch (effectType)
         {
@@ -194,3 +209,40 @@ public class JJE_SmoothMove : MonoBehaviour
         
     }
 }
+#if UNITY_EDITOR
+[CustomEditor(typeof(JJE_SmoothMove))]
+public class SME : Editor
+{
+    public override void OnInspectorGUI()
+    {
+        
+        JJE_SmoothMove instance = (JJE_SmoothMove)target;
+        DrawDefaultInspector();
+        
+        //    ===========================================
+        
+        GUILayout.Space(10);
+        GUILayout.BeginHorizontal();
+        GUILayout.FlexibleSpace();
+        if (GUILayout.Button("Loop",GUILayout.Width(60),GUILayout.Height(30)))
+        {
+            instance.StartMoveLoop();
+        }
+        if (GUILayout.Button("ToStart",GUILayout.Width(60),GUILayout.Height(30)))
+        {
+            instance.OneShotToStart();
+        }
+        if (GUILayout.Button("ToEnd",GUILayout.Width(60),GUILayout.Height(30)))
+        {
+            instance.OneShotToEnd();
+        }
+        if (GUILayout.Button("Stop",GUILayout.Width(60),GUILayout.Height(30)))
+        {
+            instance.Stop();
+        }
+        GUILayout.FlexibleSpace();
+        GUILayout.EndHorizontal();
+    }
+    
+}
+#endif

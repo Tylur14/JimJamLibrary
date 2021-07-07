@@ -54,23 +54,26 @@ public class JJE_Spring : MonoBehaviour
 
     private void Awake()
     {
-        _target = endValue;
+        _valueDir = isLocal ? transform.localPosition : transform.position;
+        //_target = endValue;
     }
 
+    #if UNITY_EDITOR
     private void Update()
     {
         // for testing purposes only!
         if(Input.GetKeyDown(KeyCode.Alpha1))
-            StartSpringLoop();
+            StartLoop();
         if(Input.GetKeyDown(KeyCode.Alpha2))
-            SpringOneShotToStart();
+            OneShotToStart();
         if(Input.GetKeyDown(KeyCode.Alpha3))
-            SpringOneShotToEnd();
+            OneShotToEnd();
         if(Input.GetKeyDown(KeyCode.Alpha0))
             StopSpring();
     }
-
-    public void StartSpringLoop()
+    #endif
+    
+    public void StartLoop()
     {
         StopAllCoroutines();
         StartCoroutine(DoLoop());
@@ -93,18 +96,18 @@ public class JJE_Spring : MonoBehaviour
                 }
             }
             _target = _target == startValue ? endValue : startValue;
-            StartSpringLoop();
+            StartLoop();
         }
     }
 
-    public void SpringOneShotToStart()
+    public void OneShotToStart()
     {
         StopAllCoroutines();
         _target = startValue;
         StartCoroutine(SpringOnce());
     }
     
-    public void SpringOneShotToEnd()
+    public void OneShotToEnd()
     {
         StopAllCoroutines();
         _target = endValue;

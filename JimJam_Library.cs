@@ -11,8 +11,8 @@ using Debug = UnityEngine.Debug;
 /// The Jim Jam Library Core
 /// A simple controller for handling files you may want to use across several projects.
 /// Say you have a door script that is simple and can be used on multiple projects, but on this other project you
-/// |-> fix bugs or add a new feature that you want to use on the first project. So with this library you can add
-/// |-> it to the library or update it if it's already in the project.
+/// fix bugs or add a new feature that you want to use on the first project. So with this library you can add
+/// it to the library or update it if it's already in the project.
 ///
 /// Features:
 /// |- Manage a single location for reusable scripts
@@ -20,6 +20,7 @@ using Debug = UnityEngine.Debug;
 /// |- Push updates to the library
 /// |- Pull newer versions from the library
 /// |- Add new files to library with context menu in project tab
+/// 
 /// </summary>
 #if UNITY_EDITOR
 
@@ -45,6 +46,7 @@ public class JimJam_Library : EditorWindow
     private bool _updating;
     private static string _dataPath;
     int _toolbarInt = 0;
+    private int _tabIndex = 0;
     readonly string[] _toolbarStrings = {"Scripts", "Unity Packages"};
     private readonly string[] _targetFileTypes = {".cs",".unitypackage"};
     private string _targetType;
@@ -78,10 +80,13 @@ public class JimJam_Library : EditorWindow
             PushToBackups();
         GUILayout.EndHorizontal();
         GUILayout.Space(5);
-        if(!Application.isPlaying && _targetType != null)
+        if (_tabIndex != _toolbarInt)
+        {
+            _tabIndex = _toolbarInt;
             CheckForUpdates();
+        }
         _scrollPosition = GUILayout.BeginScrollView(
-            _scrollPosition, GUILayout.Height(position.height * 0.90f));
+            _scrollPosition, GUILayout.ExpandHeight(true));
         
         // Go through each resource and create a section for it
         if (_resources != null && !_updating && _targetType != null)
@@ -144,8 +149,7 @@ public class JimJam_Library : EditorWindow
                 GUILayout.EndHorizontal();
             }
         GUILayout.EndScrollView();
-        
-        
+
     }
 
     void PushToBackups()
@@ -250,7 +254,5 @@ public class JimJam_Library : EditorWindow
         AssetDatabase.Refresh();
     }
 }
-
-
 
 #endif
