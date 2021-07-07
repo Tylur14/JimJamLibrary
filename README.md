@@ -2,7 +2,7 @@
  The library for various Jim Jam scripts and includes the Library Core!
 
 # Installation for Library
- To install simply drag the JimJam_Library.cs file into your Unity project. Then you can open the Library window from the top tool bar: JimJam>Library
+ To install simply drag the JimJam_Library.cs file into your Unity project. Then you can open the Library window from the top tool bar: JimJam>Library or by hitting "ctrl + g"
 
 # How to use
  This tool has two purposes, to have a single layer of one-click version control & to easily share reusable scripts across multiple projects.
